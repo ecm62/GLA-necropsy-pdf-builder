@@ -1,14 +1,14 @@
 :root {
-  --bg-dark-1: #0a192f;
-  --bg-dark-2: #112240;
-  --card-bg: rgba(17, 34, 64, 0.85);
-  --border-color: rgba(100, 255, 218, 0.2);
-  --accent-cyan: #64ffda;
-  --accent-blue: #3b82f6;
-  --text-main: #e2e8f0;
-  --text-muted: #94a3b8;
-  --success: #22c55e;
-  --success-hover: #16a34a;
+  --bg-dark-1: #07111e;
+  --bg-dark-2: #0d1b2a;
+  --card-bg: rgba(13, 27, 42, 0.92);
+  --border-color: rgba(56, 189, 248, 0.3);
+  --accent-cyan: #38bdf8;
+  --accent-blue: #2563eb;
+  --text-main: #f1f5f9;
+  --text-muted: #cbd5e1;
+  --success: #16a34a;
+  --success-hover: #15803d;
 }
 
 * {
@@ -20,11 +20,10 @@
 
 body {
   background-color: var(--bg-dark-1);
-  /* 藍色系高質感背景 + SVG 病理/手術刀/豬隻幾何浮水印圖騰 */
+  /* 強力深藍色背景，確保不會顯示白色 */
   background-image: 
-    radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(100, 255, 218, 0.1) 0%, transparent 40%),
-    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10h80v80H10z' fill='none'/%3E%3Cpath d='M20 20h10v10H20zM70 20h10v10H70zM20 70h10v10H20zM70 70h10v10H70z' fill='%23ffffff' fill-opacity='0.02'/%3E%3C/svg%3E");
+    radial-gradient(circle at 15% 15%, rgba(37, 99, 235, 0.25) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(56, 189, 248, 0.15) 0%, transparent 45%);
   color: var(--text-main);
   display: flex;
   justify-content: center;
@@ -35,70 +34,70 @@ body {
 
 .wrapper {
   width: 100%;
-  max-width: 680px;
-  position: z-index: 10;
+  max-width: 720px;
 }
 
 .app-header {
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 30px;
 }
 
 .brand-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  background-color: rgba(100, 255, 218, 0.1);
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: rgba(56, 189, 248, 0.15);
   color: var(--accent-cyan);
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.2px;
   border-radius: 999px;
-  border: 1px solid rgba(100, 255, 218, 0.3);
-  margin-bottom: 14px;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  margin-bottom: 16px;
 }
 
 .app-header h1 {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 800;
   color: #ffffff;
   letter-spacing: -0.5px;
-  margin-bottom: 10px;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  margin-bottom: 12px;
+  text-shadow: 0 3px 6px rgba(0,0,0,0.4);
 }
 
 .app-header .description {
-  font-size: 15px;
+  font-size: 16px;
   color: var(--text-muted);
   line-height: 1.6;
+  font-weight: 400;
 }
 
 .main-card {
   background: var(--card-bg);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
   border: 1px solid var(--border-color);
-  border-radius: 20px;
-  padding: 38px 32px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  border-radius: 24px;
+  padding: 42px 36px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
 }
 
 .upload-zone {
   position: relative;
-  border: 2px dashed rgba(100, 255, 218, 0.4);
-  border-radius: 14px;
-  padding: 42px 20px;
+  border: 2px dashed rgba(56, 189, 248, 0.5);
+  border-radius: 16px;
+  padding: 48px 24px;
   text-align: center;
-  background: rgba(10, 25, 47, 0.6);
+  background: rgba(7, 17, 30, 0.75);
   cursor: pointer;
   transition: all 0.25s ease;
 }
 
 .upload-zone:hover, .upload-zone.dragover {
   border-color: var(--accent-cyan);
-  background-color: rgba(17, 34, 64, 0.9);
-  box-shadow: 0 0 15px rgba(100, 255, 218, 0.15);
+  background-color: rgba(13, 27, 42, 0.95);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
 }
 
 .upload-zone input[type="file"] {
@@ -112,115 +111,118 @@ body {
 }
 
 .icon-bubble {
-  width: 64px;
-  height: 64px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(100, 255, 218, 0.2));
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.4), rgba(56, 189, 248, 0.3));
   color: var(--accent-cyan);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 16px;
-  border: 1px solid rgba(100, 255, 218, 0.3);
+  margin: 0 auto 18px;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
 }
 
 .upload-zone h3 {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: #ffffff;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .zone-desc {
-  font-size: 13.5px;
+  font-size: 14.5px;
   color: var(--text-muted);
 }
 
 .zone-desc code {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.12);
   color: var(--accent-cyan);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .file-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 16px;
-  background: rgba(100, 255, 218, 0.15);
+  gap: 10px;
+  margin-top: 18px;
+  background: rgba(56, 189, 248, 0.2);
   border: 1px solid var(--accent-cyan);
-  padding: 8px 16px;
+  padding: 10px 20px;
   border-radius: 999px;
-  font-size: 13.5px;
+  font-size: 15px;
   color: var(--accent-cyan);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .action-zone {
-  margin-top: 24px;
+  margin-top: 28px;
 }
 
 .btn {
   width: 100%;
-  padding: 16px 24px;
-  font-size: 16px;
+  padding: 18px 28px;
+  font-size: 17px;
   font-weight: 700;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   transition: all 0.2s ease;
   letter-spacing: 0.5px;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #ffffff;
-  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2563eb, #1e40af);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  transform: translateY(-2px);
 }
 
 .btn:disabled {
-  background: #334155;
-  color: #94a3b8;
+  background: #1e293b;
+  color: #64748b;
   cursor: not-allowed;
   box-shadow: none;
+  border: 1px solid #334155;
 }
 
 .btn-success {
-  background: linear-gradient(135deg, #22c55e, #15803d);
+  background: linear-gradient(135deg, #16a34a, #15803d);
   color: #ffffff;
-  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+  box-shadow: 0 6px 20px rgba(22, 163, 74, 0.5);
 }
 
 .btn-success:hover {
-  background: linear-gradient(135deg, #16a34a, #166534);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #15803d, #166534);
+  transform: translateY(-2px);
 }
 
 .progress-card {
-  margin-top: 28px;
-  background-color: rgba(10, 25, 47, 0.7);
-  padding: 20px;
-  border-radius: 12px;
+  margin-top: 32px;
+  background-color: rgba(7, 17, 30, 0.85);
+  padding: 22px;
+  border-radius: 16px;
   border: 1px solid var(--border-color);
 }
 
 .progress-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 13.5px;
-  font-weight: 600;
-  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 12px;
 }
 
 .status-label {
@@ -233,52 +235,55 @@ body {
 
 .status-percent {
   color: var(--accent-cyan);
-  font-weight: 700;
+  font-size: 16px;
 }
 
 .progress-track {
   width: 100%;
-  height: 10px;
-  background-color: #1e293b;
+  height: 12px;
+  background-color: #0f172a;
   border-radius: 999px;
   overflow: hidden;
+  border: 1px solid #1e293b;
 }
 
 .progress-fill {
   width: 0%;
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6, var(--accent-cyan));
+  background: linear-gradient(90deg, #2563eb, var(--accent-cyan));
   transition: width 0.2s ease;
 }
 
 .result-card {
-  margin-top: 28px;
-  padding: 22px;
-  border-radius: 12px;
-  background: rgba(22, 163, 74, 0.15);
-  border: 1px solid rgba(34, 197, 94, 0.4);
+  margin-top: 32px;
+  padding: 24px;
+  border-radius: 16px;
+  background: rgba(22, 163, 74, 0.18);
+  border: 1px solid rgba(34, 197, 94, 0.5);
   text-align: center;
 }
 
 .result-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 700;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 800;
   color: #4ade80;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .result-meta {
-  font-size: 13.5px;
+  font-size: 15px;
   color: #bbf7d0;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
+  font-weight: 500;
 }
 
 .app-footer {
   text-align: center;
-  margin-top: 24px;
-  font-size: 12.5px;
+  margin-top: 28px;
+  font-size: 14px;
   color: var(--text-muted);
+  font-weight: 500;
 }
