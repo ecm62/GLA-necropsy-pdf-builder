@@ -1,1 +1,0 @@
-# GLA-necropsy-pdf-builder
