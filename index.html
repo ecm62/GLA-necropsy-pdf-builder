@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Swine Farm Post-Mortem Report Generator</title>
   <link rel="stylesheet" href="style.css">
-  <!-- Core Libraries: JSZip for archive extraction & packaging, PDF-Lib for document generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 </head>
@@ -13,10 +12,13 @@
   <div class="wrapper">
     <!-- Header Section -->
     <header class="app-header">
-      <div class="brand-badge">Veterinary Pathology Engine</div>
+      <div class="brand-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        Veterinary Pathology Engine
+      </div>
       <h1>Swine Necropsy Batch Processor</h1>
       <p class="description">
-        Automated conversion of WhatsApp field logs and high-resolution macroscopic pathology photos into standardized, lightweight PDF reports.
+        Automated conversion of WhatsApp field logs and macroscopic pathology evidence into standardized, lightweight PDF reports.
       </p>
     </header>
 
@@ -26,14 +28,16 @@
         <input type="file" id="file-input" accept=".zip" />
         <div class="zone-content">
           <div class="icon-bubble">
+            <!-- Scalpel / Medical Icon SVG -->
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
+              <path d="m14.5 12.5-5 5a2.121 2.121 0 0 1-3-3l5-5"></path>
+              <path d="m16 8 4-4"></path>
+              <path d="m18.5 5.5 2 2"></path>
+              <path d="m10.5 14.5-4 4-2-2 4-4"></path>
             </svg>
           </div>
           <h3>Select or Drop Archive (.zip)</h3>
-          <p class="zone-desc">Must contain WhatsApp chat records (<code>.txt</code>) and lesion photos (<code>.jpg</code>/<code>.png</code>)</p>
+          <p class="zone-desc">Contains WhatsApp chat records (<code>.txt</code>) & lesion photos (<code>.jpg</code>/<code>.png</code>)</p>
           <div class="file-chip" id="file-chip" style="display: none;">
             <span class="file-icon">📄</span>
             <span class="file-name" id="file-name-display">None</span>
@@ -61,12 +65,12 @@
       <!-- Result Action -->
       <div class="result-card" id="download-container" style="display: none;">
         <div class="result-badge">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
           Batch Processing Completed
         </div>
-        <p class="result-meta" id="result-meta-text">All PDFs have been compiled and compressed.</p>
+        <p class="result-meta" id="result-meta-text">All PDF reports have been compiled successfully.</p>
         <button id="download-btn" class="btn btn-success">
           📥 Download All Reports (.zip)
         </button>
