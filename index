@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swine Farm Post-Mortem Report Generator</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Core Libraries: JSZip for archive extraction & packaging, PDF-Lib for document generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+</head>
+<body>
+  <div class="wrapper">
+    <!-- Header Section -->
+    <header class="app-header">
+      <div class="brand-badge">Veterinary Pathology Engine</div>
+      <h1>Swine Necropsy Batch Processor</h1>
+      <p class="description">
+        Automated conversion of WhatsApp field logs and high-resolution macroscopic pathology photos into standardized, lightweight PDF reports.
+      </p>
+    </header>
+
+    <!-- Main Processing Card -->
+    <main class="main-card">
+      <div class="upload-zone" id="drop-zone">
+        <input type="file" id="file-input" accept=".zip" />
+        <div class="zone-content">
+          <div class="icon-bubble">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+          </div>
+          <h3>Select or Drop Archive (.zip)</h3>
+          <p class="zone-desc">Must contain WhatsApp chat records (<code>.txt</code>) and lesion photos (<code>.jpg</code>/<code>.png</code>)</p>
+          <div class="file-chip" id="file-chip" style="display: none;">
+            <span class="file-icon">📄</span>
+            <span class="file-name" id="file-name-display">None</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-zone">
+        <button id="start-btn" class="btn btn-primary" disabled>
+          <span>Run Batch Processing</span>
+        </button>
+      </div>
+
+      <!-- Live Dynamic Progress -->
+      <div class="progress-card" id="progress-container" style="display: none;">
+        <div class="progress-meta">
+          <span class="status-label" id="status-text">Initializing workspace...</span>
+          <span class="status-percent" id="status-percent">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-bar"></div>
+        </div>
+      </div>
+
+      <!-- Result Action -->
+      <div class="result-card" id="download-container" style="display: none;">
+        <div class="result-badge">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Batch Processing Completed
+        </div>
+        <p class="result-meta" id="result-meta-text">All PDFs have been compiled and compressed.</p>
+        <button id="download-btn" class="btn btn-success">
+          📥 Download All Reports (.zip)
+        </button>
+      </div>
+    </main>
+
+    <!-- Footer Note -->
+    <footer class="app-footer">
+      <span>Enterprise Farm Management & Disease Surveillance Protocol</span>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
