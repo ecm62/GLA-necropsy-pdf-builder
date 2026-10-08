@@ -1,27 +1,30 @@
 :root {
-  --primary: #002b49;
-  --primary-hover: #001f35;
-  --accent: #2563eb;
-  --accent-light: #eff6ff;
-  --success: #16a34a;
-  --success-hover: #15803d;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --bg-page: #f8fafc;
-  --card-bg: #ffffff;
-  --border: #e2e8f0;
-  --shadow: 0 10px 25px -5px rgba(0, 43, 73, 0.08), 0 8px 10px -6px rgba(0, 43, 73, 0.04);
+  --bg-dark-1: #0a192f;
+  --bg-dark-2: #112240;
+  --card-bg: rgba(17, 34, 64, 0.85);
+  --border-color: rgba(100, 255, 218, 0.2);
+  --accent-cyan: #64ffda;
+  --accent-blue: #3b82f6;
+  --text-main: #e2e8f0;
+  --text-muted: #94a3b8;
+  --success: #22c55e;
+  --success-hover: #16a34a;
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 body {
-  background-color: var(--bg-page);
+  background-color: var(--bg-dark-1);
+  /* 藍色系高質感背景 + SVG 病理/手術刀/豬隻幾何浮水印圖騰 */
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(100, 255, 218, 0.1) 0%, transparent 40%),
+    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10h80v80H10z' fill='none'/%3E%3Cpath d='M20 20h10v10H20zM70 20h10v10H70zM20 70h10v10H20zM70 70h10v10H70z' fill='%23ffffff' fill-opacity='0.02'/%3E%3C/svg%3E");
   color: var(--text-main);
   display: flex;
   justify-content: center;
@@ -32,63 +35,70 @@ body {
 
 .wrapper {
   width: 100%;
-  max-width: 640px;
+  max-width: 680px;
+  position: z-index: 10;
 }
 
 .app-header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .brand-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  background-color: var(--accent-light);
-  color: var(--accent);
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background-color: rgba(100, 255, 218, 0.1);
+  color: var(--accent-cyan);
+  font-size: 12.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 1px;
   border-radius: 999px;
-  margin-bottom: 12px;
+  border: 1px solid rgba(100, 255, 218, 0.3);
+  margin-bottom: 14px;
 }
 
 .app-header h1 {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 800;
-  color: var(--primary);
+  color: #ffffff;
   letter-spacing: -0.5px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .app-header .description {
-  font-size: 13.5px;
+  font-size: 15px;
   color: var(--text-muted);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .main-card {
   background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 32px 28px;
-  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 38px 32px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
 .upload-zone {
   position: relative;
-  border: 2px dashed #cbd5e1;
-  border-radius: 12px;
-  padding: 36px 20px;
+  border: 2px dashed rgba(100, 255, 218, 0.4);
+  border-radius: 14px;
+  padding: 42px 20px;
   text-align: center;
-  background: #fdfdfd;
+  background: rgba(10, 25, 47, 0.6);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
 }
 
 .upload-zone:hover, .upload-zone.dragover {
-  border-color: var(--accent);
-  background-color: var(--accent-light);
+  border-color: var(--accent-cyan);
+  background-color: rgba(17, 34, 64, 0.9);
+  box-shadow: 0 0 15px rgba(100, 255, 218, 0.15);
 }
 
 .upload-zone input[type="file"] {
@@ -102,108 +112,115 @@ body {
 }
 
 .icon-bubble {
-  width: 52px;
-  height: 52px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background-color: #f1f5f9;
-  color: var(--primary);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(100, 255, 218, 0.2));
+  color: var(--accent-cyan);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 12px;
+  margin: 0 auto 16px;
+  border: 1px solid rgba(100, 255, 218, 0.3);
 }
 
 .upload-zone h3 {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-main);
-  margin-bottom: 4px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 6px;
 }
 
 .zone-desc {
-  font-size: 12px;
+  font-size: 13.5px;
   color: var(--text-muted);
 }
 
 .zone-desc code {
-  background-color: #f1f5f9;
-  padding: 2px 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--accent-cyan);
+  padding: 2px 6px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .file-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 14px;
-  background: #ffffff;
-  border: 1px solid var(--border);
-  padding: 6px 14px;
+  gap: 8px;
+  margin-top: 16px;
+  background: rgba(100, 255, 218, 0.15);
+  border: 1px solid var(--accent-cyan);
+  padding: 8px 16px;
   border-radius: 999px;
-  font-size: 12.5px;
-  color: var(--primary);
+  font-size: 13.5px;
+  color: var(--accent-cyan);
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .action-zone {
-  margin-top: 20px;
+  margin-top: 24px;
 }
 
 .btn {
   width: 100%;
-  padding: 13px 20px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 16px 24px;
+  font-size: 16px;
+  font-weight: 700;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 8px;
-  transition: all 0.15s ease;
+  gap: 10px;
+  transition: all 0.2s ease;
+  letter-spacing: 0.5px;
 }
 
 .btn-primary {
-  background-color: var(--primary);
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   color: #ffffff;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--primary-hover);
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  transform: translateY(-1px);
 }
 
 .btn:disabled {
-  background-color: #94a3b8;
+  background: #334155;
+  color: #94a3b8;
   cursor: not-allowed;
-  opacity: 0.8;
+  box-shadow: none;
 }
 
 .btn-success {
-  background-color: var(--success);
+  background: linear-gradient(135deg, #22c55e, #15803d);
   color: #ffffff;
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
 }
 
 .btn-success:hover {
-  background-color: var(--success-hover);
+  background: linear-gradient(135deg, #16a34a, #166534);
+  transform: translateY(-1px);
 }
 
 .progress-card {
-  margin-top: 24px;
-  background-color: #f8fafc;
-  padding: 16px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
+  margin-top: 28px;
+  background-color: rgba(10, 25, 47, 0.7);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
 }
 
 .progress-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .status-label {
@@ -211,17 +228,18 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 80%;
+  max-width: 75%;
 }
 
 .status-percent {
-  color: var(--primary);
+  color: var(--accent-cyan);
+  font-weight: 700;
 }
 
 .progress-track {
   width: 100%;
-  height: 8px;
-  background-color: #e2e8f0;
+  height: 10px;
+  background-color: #1e293b;
   border-radius: 999px;
   overflow: hidden;
 }
@@ -229,38 +247,38 @@ body {
 .progress-fill {
   width: 0%;
   height: 100%;
-  background-color: var(--accent);
+  background: linear-gradient(90deg, #3b82f6, var(--accent-cyan));
   transition: width 0.2s ease;
 }
 
 .result-card {
-  margin-top: 24px;
-  padding: 20px;
-  border-radius: 10px;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  margin-top: 28px;
+  padding: 22px;
+  border-radius: 12px;
+  background: rgba(22, 163, 74, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
   text-align: center;
 }
 
 .result-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13.5px;
+  gap: 8px;
+  font-size: 15px;
   font-weight: 700;
-  color: var(--success);
-  margin-bottom: 6px;
+  color: #4ade80;
+  margin-bottom: 8px;
 }
 
 .result-meta {
-  font-size: 12px;
-  color: #166534;
-  margin-bottom: 16px;
+  font-size: 13.5px;
+  color: #bbf7d0;
+  margin-bottom: 18px;
 }
 
 .app-footer {
   text-align: center;
-  margin-top: 20px;
-  font-size: 11.5px;
+  margin-top: 24px;
+  font-size: 12.5px;
   color: var(--text-muted);
 }
