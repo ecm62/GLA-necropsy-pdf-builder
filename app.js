@@ -81,6 +81,15 @@ function normalizeDate(rawStr, fallbackHeader) {
     return { clean: `${y}${m}${d}`, display: `${y}/${m}/${d}` };
   }
 
+  // 針對 26/10/16 這種格式的轉換 (2026年)
+  const m3 = rawStr.match(/(\d{2})\/(\d{1,2})\/(\d{1,2})/);
+  if (m3) {
+    const y = '20' + m3[1];
+    const m = parseInt(m3[2], 10).toString().padStart(2, '0');
+    const d = parseInt(m3[3], 10).toString().padStart(2, '0');
+    return { clean: `${y}${m}${d}`, display: `${y}/${m}/${d}` };
+  }
+
   return { clean: "20260101", display: "2026/01/01" };
 }
 
@@ -90,11 +99,10 @@ function cleanDiagnosis(raw) {
     .map(l => l.trim())
     .filter(l => l.length > 0)
     .filter(l => !(skipKeywords.some(sk => l.toLowerCase().includes(sk)) && l.length < 15))
-    .map(l => l.replace(/^\d{4}\/\d{1,2}\/\d{1,2}.*?:\s*/, ''))
+    .map(l => l.replace(/^[\d\/]+\s+.*?:\s*/, ''))
     .join('\n');
 }
 
-// Client-side Image Compression (max 600px dimension, 60% JPEG Quality)
 async function compressImageToJpegBlob(imageBlob) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -152,16 +160,11 @@ startBtn.addEventListener('click', async () => {
       const lower = filename.toLowerCase();
       const baseName = filename.split('/').pop();
 
-      if (lower.endsWith('.txt') && (lower.includes('post') || lower.includes('record') || lower.includes('對話'))) {
+      if (lower.endsWith('.txt')) {
         chatTxtContent = await entry.async('string');
       } else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png')) {
         photoMap[baseName] = entry;
       }
-    }
-
-    if (!chatTxtContent) {
-      const candidate = zipFiles.find(f => f.toLowerCase().endsWith('.txt') && !zip.files[f].dir);
-      if (candidate) chatTxtContent = await zip.files[candidate].async('string');
     }
 
     if (!chatTxtContent) {
@@ -173,7 +176,8 @@ startBtn.addEventListener('click', async () => {
 
     updateProgress(20, 'Parsing clinical log messages...');
 
-    const msgPattern = /(\d{4}\/\d{1,2}\/\d{1,2}\s+[上下]午\d{1,2}:\d{2}\s*-\s*[^:]+:\s*)/g;
+    // 支援您截圖中的手機版 WhatsApp 格式 (例如: 26/10/16 中午12:37 - 名字:)
+    const msgPattern = /(\d{1,2}\/\d{1,2}\/\d{2,4}\s+[^\-]+?:\s*)/g;
     const parts = chatTxtContent.split(msgPattern);
     const pigRecords = [];
     let currentPig = null;
@@ -197,15 +201,15 @@ startBtn.addEventListener('click', async () => {
         }
       }
 
-      const isCase = ['post mortem', 'sudden death', 'died', 'clinical', 'abscess', 'ulcer', 'pleurisy', 'dystocia', 'hydronephrosis', 'splenomegaly']
+      const isCase = ['post mortem', 'sudden death', 'died', 'clinical', 'abscess', 'ulcer', 'pleurisy', 'dystocia', 'hydronephrosis', 'splenomegaly', 'autolysis']
         .some(k => cleanBody.toLowerCase().includes(k));
 
       if (newEar && isCase) {
         if (currentPig) pigRecords.push(currentPig);
 
-        const hm = header.match(/(\d{4}\/\d{1,2}\/\d{1,2})/);
-        const hDate = hm ? hm[1] : '2026/01/01';
-        const dm = cleanBody.match(/(?:death|died)?\s*[:：]?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4}|\d{4}\/\d{1,2}\/\d{1,2})/i);
+        const hm = header.match(/(\d{1,2}\/\d{1,2}\/\d{2,4})/);
+        const hDate = hm ? hm[1] : '26/10/16';
+        const dm = cleanBody.match(/(?:death|died)?\s*[:：]?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{2,4})/i);
         const rawD = dm ? dm[1] : hDate;
         const norm = normalizeDate(rawD, hDate);
 
@@ -227,7 +231,7 @@ startBtn.addEventListener('click', async () => {
     if (currentPig) pigRecords.push(currentPig);
 
     if (pigRecords.length === 0) {
-      alert('Notice: No valid pig necropsy records could be identified.');
+      alert('Notice: No valid pig necropsy records could be identified. Please check text format.');
       progressContainer.style.display = 'none';
       startBtn.disabled = false;
       return;
@@ -242,17 +246,15 @@ startBtn.addEventListener('click', async () => {
       updateProgress(percent, `Generating: ${pig.cleanDate}_${pig.earTag}.pdf (${idx + 1}/${totalPigs})`);
 
       const pdfDoc = await PDFLib.PDFDocument.create();
-      let page = pdfDoc.addPage([595.28, 841.89]); // A4
+      let page = pdfDoc.addPage([595.28, 841.89]);
       const { width, height } = page.getSize();
       const fontBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
       const fontRegular = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
 
-      // Report Title
       page.drawText("Farm Post-Mortem and Image Record Report", {
         x: 40, y: height - 42, size: 14, font: fontBold, color: PDFLib.rgb(0, 0.17, 0.29)
       });
 
-      // Information Table Card
       page.drawRectangle({
         x: 40, y: height - 88, width: width - 80, height: 36,
         color: PDFLib.rgb(0.96, 0.97, 0.98), borderColor: PDFLib.rgb(0.85, 0.88, 0.92), borderWidth: 0.5
@@ -261,12 +263,11 @@ startBtn.addEventListener('click', async () => {
       page.drawText(`Date of Death: ${pig.displayDate}`, { x: 260, y: height - 68, size: 9, font: fontRegular });
       page.drawText(`Total Lesion Images: ${pig.images.length} photos`, { x: 50, y: height - 81, size: 8, font: fontRegular });
 
-      // Pathological Notes
       page.drawText("[ Primary Diagnosis & Pathological Notes ]", {
         x: 40, y: height - 108, size: 10, font: fontBold, color: PDFLib.rgb(0, 0.17, 0.29)
       });
 
-      const diagLines = pig.diagnosis.split('\n').slice(0, 4);
+      const diagLines = pig.diagnosis.split('\n').slice(0, 5);
       let curY = height - 123;
       for (const line of diagLines) {
         page.drawText(line.substring(0, 95), { x: 45, y: curY, size: 8, font: fontRegular, color: PDFLib.rgb(0.1, 0.1, 0.1) });
@@ -278,7 +279,6 @@ startBtn.addEventListener('click', async () => {
       });
       curY -= 15;
 
-      // 2-Column Photo Grid
       pig.images.sort();
       const colW = 250;
       const rowH = 180;
