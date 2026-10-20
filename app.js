@@ -62,11 +62,11 @@ function handleFileSelection(file) {
   downloadContainer.style.display = 'none';
 }
 
-// 【馬來西亞在地化日期修正】強制校正為 2026 年，支援 DD/MM/YY 或 DD-MM-YYYY
+// 【嚴格日期校正】強制鎖定 2026 年，杜絕 2020 年誤判
 function normalizeDate(rawStr) {
   if (!rawStr) return { clean: "20261016", display: "16 October 2026" };
   
-  // 1. 英文格式 (例: 16 October 2026 或 07 Oct 2026)
+  // 1. 優先捕捉 4 位數年份 (例: 16 October 2026 或 2026/10/16)
   const m1 = rawStr.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
   if (m1) {
     const d = parseInt(m1[1], 10).toString().padStart(2, '0');
@@ -75,7 +75,6 @@ function normalizeDate(rawStr) {
     return { clean: `${y}${m}${d}`, display: `${parseInt(d, 10)} ${m1[2]} ${y}` };
   }
 
-  // 2. 標準完整格式 (例: 2026/10/16 或 2026-10-16)
   const m2 = rawStr.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
   if (m2) {
     const y = m2[1];
@@ -84,38 +83,45 @@ function normalizeDate(rawStr) {
     return { clean: `${y}${m}${d}`, display: `${y}/${m}/${d}` };
   }
 
-  // 3. 馬來西亞常見手輸或簡寫格式 (例: 16-10-2026 或 26/10/16 代表 2026年10月16日)
+  // 2. 捕捉 2 位數或未滿年份，強制指定為 2026 年
   const m3 = rawStr.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/);
   if (m3) {
-    let day = m3[1];
-    let month = m3[2];
-    let yearPart = m3[3];
-    
-    // 如果第一位大於 12，代表一定是「日/月/年」格式 (例如 16/10/26)
-    if (parseInt(day, 10) > 12) {
-      // day 就是 day, month 就是 month
-    } else {
-      // 預防萬一，馬來西亞慣用 DD/MM/YYYY
-    }
-
-    const y = yearPart.length === 2 ? '20' + yearPart : yearPart;
-    const m = parseInt(month, 10).toString().padStart(2, '0');
+    const day = m3[1];
+    const month = m3[2];
     const d = parseInt(day, 10).toString().padStart(2, '0');
+    const m = parseInt(month, 10).toString().padStart(2, '0');
+    const y = '2026'; // 強制鎖定 2026 年
     return { clean: `${y}${m}${d}`, display: `${y}/${m}/${d}` };
   }
 
   return { clean: "20261016", display: "16 October 2026" };
 }
 
+// 【強力過濾】徹底清除所有轉發對話行、時間戳記與附檔名冗行
 function cleanDiagnosis(raw) {
   const skipKeywords = ['house', 'g-a', 'fa-', 'gb/', 'w18/', 'fa2', 'fa3', 'code', 'chatra', 'sow', 'gilt', 'porker'];
-  return raw.split('\n')
-    .map(l => l.trim())
-    .map(l => l.replace(/[^\x00-\x7F]/g, ' '))
-    .filter(l => l.length > 0)
-    .filter(l => !(skipKeywords.some(sk => l.toLowerCase() === sk) && l.length < 10))
-    .map(l => l.replace(/^(\[.*?\]\s*|[已轉寄]\s*)/g, ''))
-    .join('\n');
+  const lines = raw.split('\n');
+  const validLines = [];
+
+  for (let line of lines) {
+    line = line.trim();
+    if (!line) continue;
+
+    if (line.includes('Yang CH:') || line.includes('IMG-') || line.includes('上午') || line.includes('下午') || line.includes('已轉寄') || line.includes('附件檔案') || line.includes('已略過圖像')) {
+      continue;
+    }
+
+    if (skipKeywords.some(sk => line.toLowerCase() === sk) && line.length < 10) {
+      continue;
+    }
+
+    line = line.replace(/[^\x00-\x7F]/g, ' ');
+    if (line.trim().length > 0) {
+      validLines.push(line);
+    }
+  }
+
+  return validLines.join('\n');
 }
 
 async function compressImageToJpegBlob(imageBlob) {
@@ -189,7 +195,7 @@ startBtn.addEventListener('click', async () => {
       return;
     }
 
-    updateProgress(20, 'Parsing clinical log records by Ear Tags...');
+    updateProgress(20, 'Parsing clinical log records and linking images...');
 
     const earTagRegex = /\b((?:LY|DD|PORKER)\s*\d+|[YD]\s*\d+|L\s*\d+)\b/ig;
     const lines = chatTxtContent.split('\n');
@@ -202,6 +208,11 @@ startBtn.addEventListener('click', async () => {
       line = line.trim();
       const match = line.match(earTagRegex);
       
+      const imgMatches = Array.from(line.matchAll(/(IMG-\d{8}-WA\d+\.jpg)/g)).map(m => m[1]);
+      imgMatches.forEach(img => {
+        if (currentPig) currentPig.imagesSet.add(img);
+      });
+
       if (match && line.length < 25) {
         if (currentPig) {
           currentPig.diagnosis = cleanDiagnosis(currentBlockText);
@@ -210,19 +221,19 @@ startBtn.addEventListener('click', async () => {
         
         const extractedEar = match[0].toUpperCase().replace(/\s+/g, '');
         currentBlockText = '';
-        currentpig = {
+        
+        currentPig = {
           earTag: extractedEar,
           cleanDate: '20261016',
           displayDate: '16 October 2026',
-          images: []
+          imagesSet: new Set(),
+          diagnosis: ''
         };
-        currentPig = currentpig;
       }
 
       if (currentPig) {
         currentBlockText += line + '\n';
         
-        // 優先抓取內文中的 Date of death 欄位
         const dateMatch = line.match(/(?:date of death|died)?\s*[:：]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}\s+[A-Za-z]+\s+\d{4})/i);
         if (dateMatch && dateMatch[1]) {
           const norm = normalizeDate(dateMatch[1]);
@@ -241,13 +252,7 @@ startBtn.addEventListener('click', async () => {
     let imgIdx = 0;
 
     for (let pig of pigRecords) {
-      const foundInText = Array.from(pig.diagnosis.matchAll(/(IMG-\d{8}-WA\d+\.jpg)/g)).map(m => m[1]);
-      if (foundInText.length > 0) {
-        pig.images = foundInText;
-      } else {
-        pig.images = allImageNames.slice(imgIdx, imgIdx + 3);
-        imgIdx += 3;
-      }
+      pig.images = Array.from(pig.imagesSet);
     }
 
     if (pigRecords.length === 0) {
@@ -287,7 +292,7 @@ startBtn.addEventListener('click', async () => {
         x: 40, y: height - 108, size: 10, font: fontBold, color: PDFLib.rgb(0, 0.17, 0.29)
       });
 
-      const diagLines = pig.diagnosis.split('\n').slice(0, 10);
+      const diagLines = pig.diagnosis.split('\n').slice(0, 12);
       let curY = height - 123;
       for (const line of diagLines) {
         page.drawText(line.substring(0, 95), { x: 45, y: curY, size: 8, font: fontRegular, color: PDFLib.rgb(0.1, 0.1, 0.1) });
