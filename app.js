@@ -65,7 +65,6 @@ function handleFileSelection(file) {
 function normalizeDate(rawStr, fallbackHeader) {
   if (!rawStr) rawStr = fallbackHeader || '';
   
-  // 1. 英文格式 (例: 07-10-2026 或 12 Oct 2026)
   const m1 = rawStr.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
   if (m1) {
     const d = parseInt(m1[1], 10).toString().padStart(2, '0');
@@ -74,7 +73,6 @@ function normalizeDate(rawStr, fallbackHeader) {
     return { clean: `${y}${m}${d}`, display: `${parseInt(d, 10)} ${m1[2]} ${y}` };
   }
 
-  // 2. 電腦版完整格式 (例: 2026/10/16)
   const m2 = rawStr.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
   if (m2) {
     const y = m2[1];
@@ -83,7 +81,6 @@ function normalizeDate(rawStr, fallbackHeader) {
     return { clean: `${y}${m}${d}`, display: `${y}/${m}/${d}` };
   }
 
-  // 3. 手機版兩碼年份格式 (例: 26/10/16 -> 2026/10/16)
   const m3 = rawStr.match(/(\d{2})\/(\d{1,2})\/(\d{1,2})/);
   if (m3) {
     const y = '20' + m3[1];
@@ -92,7 +89,7 @@ function normalizeDate(rawStr, fallbackHeader) {
     return { clean: `${y}${m}${d}`, display: `${y}/${m}/${d}` };
   }
 
-  return { clean: "20260101", display: "2026/01/01" };
+  return { clean: "20261020", display: "2026/10/20" };
 }
 
 function cleanDiagnosis(raw) {
@@ -101,7 +98,7 @@ function cleanDiagnosis(raw) {
     .map(l => l.trim())
     .filter(l => l.length > 0)
     .filter(l => !(skipKeywords.some(sk => l.toLowerCase().includes(sk)) && l.length < 15))
-    .map(l => l.replace(/^(\d{4}[/-]\d{1,2}[/-]\d{1,2}|\d{1,2}\/\d{1,2}\/\d{2,4})\s+.*?:\s*/, ''))
+    .map(l => l.replace(/^(\d{1,2}\/\d{1,2}\/\d{2,4}\s+[^\-]+?:\s*|\[.*?\]\s*)/, ''))
     .join('\n');
 }
 
@@ -178,8 +175,8 @@ startBtn.addEventListener('click', async () => {
 
     updateProgress(20, 'Parsing clinical log messages...');
 
-    // 【雙重相容萬用正則】同時支援電腦版 (YYYY/MM/DD) 與手機版 (YY/MM/DD 或 DD/MM/YY) 匯出格式
-    const msgPattern = /((?:\d{4}[/-]\d{1,2}[/-]\d{1,2}|\d{1,2}\/\d{1,2}\/\d{2,4})\s+[^\-]+?:\s*)/g;
+    // 寬鬆相容正則，透過訊息中的耳號與關鍵字來精準切分個體
+    const msgPattern = /(\[?\d{1,2}\/\d{1,2}\/\d{2,4}[^\]\n]*?\]?\s*[^:\n]+:\s*)/g;
     const parts = chatTxtContent.split(msgPattern);
     const pigRecords = [];
     let currentPig = null;
@@ -189,12 +186,12 @@ startBtn.addEventListener('click', async () => {
       const header = parts[i];
       const body = parts[i + 1] ? parts[i + 1].trim() : '';
       const foundImgs = Array.from(body.matchAll(/(IMG-\d{8}-WA\d+\.jpg)/g)).map(m => m[1]);
-      const cleanBody = body.replace(/‎?IMG-\d{8}-WA\d+\.jpg\s*\(附件檔案\)/g, '').trim();
+      const cleanBody = body.replace(/‎?IMG-\d{8}-WA\d+\.jpg\s*\(附件檔案\)/g, '').replace(/[已轉寄]/g, '').trim();
       const lines = cleanBody.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
       let newEar = null;
       if (lines.length > 0) {
-        for (const line of lines.slice(0, 3)) {
+        for (const line of lines.slice(0, 4)) {
           const em = line.match(earTagRegex);
           if (em) {
             newEar = em[1].toUpperCase().replace(/\s+/g, '');
@@ -203,15 +200,20 @@ startBtn.addEventListener('click', async () => {
         }
       }
 
-      const isCase = ['post mortem', 'sudden death', 'died', 'clinical', 'abscess', 'ulcer', 'pleurisy', 'dystocia', 'hydronephrosis', 'splenomegaly', 'autolysis']
-        .some(k => cleanBody.toLowerCase().includes(k));
+      // 放寬判定條件，只要包含日期或病理特徵即視為有效個案
+      const isCase = newEar && (
+        cleanBody.toLowerCase().includes('date of death') || 
+        cleanBody.toLowerCase().includes('post mortem') || 
+        cleanBody.toLowerCase().includes('findings') ||
+        cleanBody.toLowerCase().includes('death')
+      );
 
-      if (newEar && isCase) {
+      if (isCase) {
         if (currentPig) pigRecords.push(currentPig);
 
-        const hm = header.match(/(\d{4}[/-]\d{1,2}[/-]\d{1,2}|\d{1,2}\/\d{1,2}\/\d{2,4})/);
-        const hDate = hm ? hm[1] : '2026/01/01';
-        const dm = cleanBody.match(/(?:death|died)?\s*[:：]?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4}|\d{4}[/-]\d{1,2}[/-]\d{1,2}|\d{1,2}\/\d{1,2}\/\d{2,4})/i);
+        const hm = header.match(/(\d{1,2}\/\d{1,2}\/\d{2,4})/);
+        const hDate = hm ? hm[1] : '26/10/20';
+        const dm = cleanBody.match(/(?:death|died)?\s*[:：]?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i);
         const rawD = dm ? dm[1] : hDate;
         const norm = normalizeDate(rawD, hDate);
 
@@ -269,7 +271,7 @@ startBtn.addEventListener('click', async () => {
         x: 40, y: height - 108, size: 10, font: fontBold, color: PDFLib.rgb(0, 0.17, 0.29)
       });
 
-      const diagLines = pig.diagnosis.split('\n').slice(0, 5);
+      const diagLines = pig.diagnosis.split('\n').slice(0, 8);
       let curY = height - 123;
       for (const line of diagLines) {
         page.drawText(line.substring(0, 95), { x: 45, y: curY, size: 8, font: fontRegular, color: PDFLib.rgb(0.1, 0.1, 0.1) });
