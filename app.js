@@ -15,15 +15,21 @@ let selectedZipFile = null;
 let finalOutputZipBlob = null;
 
 const MONTH_MAP = {
-  january: '01', jan: '01', february: '02', feb: '02',
-  march: '03', mar: '03', april: '04', apr: '04',
-  may: '05', june: '06', jun: '06', july: '07', jul: '07',
-  august: '08', aug: '08', september: '09', sep: '09',
-  october: '10', oct: '10', november: '11', nov: '11',
-  december: '12', dec: '12'
+  jan: '01', january: '01',
+  feb: '02', february: '02',
+  mar: '03', march: '03',
+  apr: '04', april: '04',
+  may: '05',
+  jun: '06', june: '06',
+  jul: '07', july: '07',
+  aug: '08', august: '08',
+  sep: '09', september: '09',
+  oct: '10', october: '10',
+  nov: '11', november: '11',
+  dec: '12', december: '12'
 };
 
-// Drag & Drop Interactions
+// 拖曳互動
 ['dragenter', 'dragover'].forEach(evtName => {
   dropZone.addEventListener(evtName, (e) => {
     e.preventDefault();
@@ -62,42 +68,42 @@ function handleFileSelection(file) {
   downloadContainer.style.display = 'none';
 }
 
-// 【嚴格日期校正】強制鎖定 2026 年，杜絕 2020 年誤判
-function normalizeDate(rawStr) {
+// 【解剖死亡日期解析核心】嚴格抓取「日-月-年」，杜絕張貼日與照片日期干擾
+function parseDeathDate(rawStr) {
   if (!rawStr) return { clean: "20261016", display: "16 October 2026" };
-  
-  // 1. 優先捕捉 4 位數年份 (例: 16 October 2026 或 2026/10/16)
+
+  // 1. 英文月份格式：例如 "7 Oct 2026", "16 October 2026", "12 Oct 2026"
   const m1 = rawStr.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
   if (m1) {
     const d = parseInt(m1[1], 10).toString().padStart(2, '0');
-    const m = MONTH_MAP[m1[2].toLowerCase()] || '10';
+    const mStr = m1[2].toLowerCase().substring(0, 3);
+    const m = MONTH_MAP[mStr] || '10';
     const y = m1[3];
     return { clean: `${y}${m}${d}`, display: `${parseInt(d, 10)} ${m1[2]} ${y}` };
   }
 
-  const m2 = rawStr.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
+  // 2. 日期開頭數字格式：例如 "07-10-2026" 或 "16-10-2026"
+  const m2 = rawStr.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
   if (m2) {
-    const y = m2[1];
+    const d = parseInt(m2[1], 10).toString().padStart(2, '0');
     const m = parseInt(m2[2], 10).toString().padStart(2, '0');
-    const d = parseInt(m2[3], 10).toString().padStart(2, '0');
+    const y = m2[3];
     return { clean: `${y}${m}${d}`, display: `${y}/${m}/${d}` };
   }
 
-  // 2. 捕捉 2 位數或未滿年份，強制指定為 2026 年
-  const m3 = rawStr.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/);
+  // 3. 西元年開頭標準格式：例如 "2026/10/16"
+  const m3 = rawStr.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
   if (m3) {
-    const day = m3[1];
-    const month = m3[2];
-    const d = parseInt(day, 10).toString().padStart(2, '0');
-    const m = parseInt(month, 10).toString().padStart(2, '0');
-    const y = '2026'; // 強制鎖定 2026 年
+    const y = m3[1];
+    const m = parseInt(m3[2], 10).toString().padStart(2, '0');
+    const d = parseInt(m3[3], 10).toString().padStart(2, '0');
     return { clean: `${y}${m}${d}`, display: `${y}/${m}/${d}` };
   }
 
   return { clean: "20261016", display: "16 October 2026" };
 }
 
-// 【強力過濾】徹底清除所有轉發對話行、時間戳記與附檔名冗行
+// 【過濾張貼雜訊】完全剔除 "Yang CH: IMG-..."、時間戳記、轉發字串
 function cleanDiagnosis(raw) {
   const skipKeywords = ['house', 'g-a', 'fa-', 'gb/', 'w18/', 'fa2', 'fa3', 'code', 'chatra', 'sow', 'gilt', 'porker'];
   const lines = raw.split('\n');
@@ -107,7 +113,17 @@ function cleanDiagnosis(raw) {
     line = line.trim();
     if (!line) continue;
 
-    if (line.includes('Yang CH:') || line.includes('IMG-') || line.includes('上午') || line.includes('下午') || line.includes('已轉寄') || line.includes('附件檔案') || line.includes('已略過圖像')) {
+    // 剔除 WhatsApp 轉發、發布者資訊、附件標籤與照片檔名
+    if (
+      line.includes('Yang CH:') ||
+      line.includes('IMG-') ||
+      line.includes('上午') ||
+      line.includes('下午') ||
+      line.includes('已轉寄') ||
+      line.includes('附件檔案') ||
+      line.includes('已略過圖像') ||
+      line.toLowerCase().includes('date of death') // 避免在備註欄位重複印出死亡日期
+    ) {
       continue;
     }
 
@@ -115,8 +131,9 @@ function cleanDiagnosis(raw) {
       continue;
     }
 
-    line = line.replace(/[^\x00-\x7F]/g, ' ');
-    if (line.trim().length > 0) {
+    // 移除特殊字元，保留純文字
+    line = line.replace(/[^\x00-\x7F]/g, ' ').trim();
+    if (line.length > 0) {
       validLines.push(line);
     }
   }
@@ -195,8 +212,9 @@ startBtn.addEventListener('click', async () => {
       return;
     }
 
-    updateProgress(20, 'Parsing clinical log records and linking images...');
+    updateProgress(20, 'Analyzing Ear Tags and isolating necropsy records...');
 
+    // 以耳號作為獨立個體切割點
     const earTagRegex = /\b((?:LY|DD|PORKER)\s*\d+|[YD]\s*\d+|L\s*\d+)\b/ig;
     const lines = chatTxtContent.split('\n');
     
@@ -208,11 +226,13 @@ startBtn.addEventListener('click', async () => {
       line = line.trim();
       const match = line.match(earTagRegex);
       
+      // 收集該行所列出的照片
       const imgMatches = Array.from(line.matchAll(/(IMG-\d{8}-WA\d+\.jpg)/g)).map(m => m[1]);
       imgMatches.forEach(img => {
         if (currentPig) currentPig.imagesSet.add(img);
       });
 
+      // 偵測到新耳號行時，切換為下一頭個體
       if (match && line.length < 25) {
         if (currentPig) {
           currentPig.diagnosis = cleanDiagnosis(currentBlockText);
@@ -227,18 +247,24 @@ startBtn.addEventListener('click', async () => {
           cleanDate: '20261016',
           displayDate: '16 October 2026',
           imagesSet: new Set(),
-          diagnosis: ''
+          diagnosis: '',
+          hasLockedDeathDate: false
         };
       }
 
       if (currentPig) {
         currentBlockText += line + '\n';
         
-        const dateMatch = line.match(/(?:date of death|died)?\s*[:：]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}\s+[A-Za-z]+\s+\d{4})/i);
-        if (dateMatch && dateMatch[1]) {
-          const norm = normalizeDate(dateMatch[1]);
-          currentPig.cleanDate = norm.clean;
-          currentPig.displayDate = norm.display;
+        // 嚴格鎖定：只從內文的 "Date of death:" 解析真實解剖死亡日期
+        if (!currentPig.hasLockedDeathDate) {
+          const deathDateMatch = line.match(/date\s+of\s+death\s*[:：]?\s*([^\n,]+)/i);
+          if (deathDateMatch && deathDateMatch[1]) {
+            const rawDeathStr = deathDateMatch[1].trim();
+            const norm = parseDeathDate(rawDeathStr);
+            currentPig.cleanDate = norm.clean;
+            currentPig.displayDate = norm.display;
+            currentPig.hasLockedDeathDate = true; // 鎖定，後續的張貼時間與圖片檔名不可覆蓋
+          }
         }
       }
     }
@@ -248,9 +274,7 @@ startBtn.addEventListener('click', async () => {
       pigRecords.push(currentPig);
     }
 
-    const allImageNames = Object.keys(photoMap).sort();
-    let imgIdx = 0;
-
+    // 關聯圖片
     for (let pig of pigRecords) {
       pig.images = Array.from(pig.imagesSet);
     }
@@ -268,7 +292,7 @@ startBtn.addEventListener('click', async () => {
     for (let idx = 0; idx < totalPigs; idx++) {
       const pig = pigRecords[idx];
       const percent = 20 + Math.round(((idx + 1) / totalPigs) * 70);
-      updateProgress(percent, `Generating: ${pig.cleanDate}_${pig.earTag}.pdf (${idx + 1}/${totalPigs})`);
+      updateProgress(percent, `Compiling: ${pig.cleanDate}_${pig.earTag}.pdf (${idx + 1}/${totalPigs})`);
 
       const pdfDoc = await PDFLib.PDFDocument.create();
       let page = pdfDoc.addPage([595.28, 841.89]);
@@ -276,23 +300,27 @@ startBtn.addEventListener('click', async () => {
       const fontBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
       const fontRegular = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
 
+      // 標題
       page.drawText("Farm Post-Mortem and Image Record Report", {
         x: 40, y: height - 42, size: 14, font: fontBold, color: PDFLib.rgb(0, 0.17, 0.29)
       });
 
+      // 個體摘要資訊框
       page.drawRectangle({
         x: 40, y: height - 88, width: width - 80, height: 36,
         color: PDFLib.rgb(0.96, 0.97, 0.98), borderColor: PDFLib.rgb(0.85, 0.88, 0.92), borderWidth: 0.5
       });
       page.drawText(`Sow Ear Tag: ${pig.earTag}`, { x: 50, y: height - 68, size: 9, font: fontBold });
-      page.drawText(`Date of Death: ${pig.displayDate}`, { x: 260, y: height - 68, size: 9, font: fontRegular });
+      // 顯示真實的解剖死亡日期
+      page.drawText(`Date of Death: ${pig.displayDate}`, { x: 260, y: height - 68, size: 9, font: fontBold });
       page.drawText(`Total Lesion Images: ${pig.images.length} photos`, { x: 50, y: height - 81, size: 8, font: fontRegular });
 
+      // 純病理備註
       page.drawText("[ Primary Diagnosis & Pathological Notes ]", {
         x: 40, y: height - 108, size: 10, font: fontBold, color: PDFLib.rgb(0, 0.17, 0.29)
       });
 
-      const diagLines = pig.diagnosis.split('\n').slice(0, 12);
+      const diagLines = pig.diagnosis.split('\n').slice(0, 10);
       let curY = height - 123;
       for (const line of diagLines) {
         page.drawText(line.substring(0, 95), { x: 45, y: curY, size: 8, font: fontRegular, color: PDFLib.rgb(0.1, 0.1, 0.1) });
@@ -304,6 +332,7 @@ startBtn.addEventListener('click', async () => {
       });
       curY -= 15;
 
+      // 2 Columns 照片網格排版
       pig.images.sort();
       const colW = 250;
       const rowH = 180;
