@@ -96,8 +96,8 @@ function cleanDiagnosis(raw) {
   const skipKeywords = ['house', 'g-a', 'fa-', 'gb/', 'w18/', 'fa2', 'fa3', 'code', 'chatra', 'sow', 'gilt', 'porker'];
   return raw.split('\n')
     .map(l => l.trim())
-    // 【強力清洗】移除隱形的零寬度空格 (0x2060) 與特殊控制字元，防止 WinAnsi 編碼錯誤
-    .map(l => l.replace(/[\u2060\u200B\u200C\u200D\uFEFF]/g, ''))
+    // 【終極清洗】把所有非標準 ASCII 符號、特殊引號、零寬空白與控制字元全部轉成標準空白或移除
+    .map(l => l.replace(/[^\x00-\x7F]/g, ' '))
     .filter(l => l.length > 0)
     .filter(l => !(skipKeywords.some(sk => l.toLowerCase() === sk) && l.length < 10))
     .map(l => l.replace(/^(\[.*?\]\s*|[已轉寄]\s*)/g, ''))
