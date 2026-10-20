@@ -65,6 +65,7 @@ function handleFileSelection(file) {
 function normalizeDate(rawStr, fallbackHeader) {
   if (!rawStr) rawStr = fallbackHeader || '';
   
+  // 1. 英文格式 (例: 07-10-2026 或 12 Oct 2026)
   const m1 = rawStr.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
   if (m1) {
     const d = parseInt(m1[1], 10).toString().padStart(2, '0');
@@ -73,6 +74,7 @@ function normalizeDate(rawStr, fallbackHeader) {
     return { clean: `${y}${m}${d}`, display: `${parseInt(d, 10)} ${m1[2]} ${y}` };
   }
 
+  // 2. 電腦版完整格式 (例: 2026/10/16)
   const m2 = rawStr.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
   if (m2) {
     const y = m2[1];
@@ -81,7 +83,7 @@ function normalizeDate(rawStr, fallbackHeader) {
     return { clean: `${y}${m}${d}`, display: `${y}/${m}/${d}` };
   }
 
-  // 針對 26/10/16 這種格式的轉換 (2026年)
+  // 3. 手機版兩碼年份格式 (例: 26/10/16 -> 2026/10/16)
   const m3 = rawStr.match(/(\d{2})\/(\d{1,2})\/(\d{1,2})/);
   if (m3) {
     const y = '20' + m3[1];
@@ -99,7 +101,7 @@ function cleanDiagnosis(raw) {
     .map(l => l.trim())
     .filter(l => l.length > 0)
     .filter(l => !(skipKeywords.some(sk => l.toLowerCase().includes(sk)) && l.length < 15))
-    .map(l => l.replace(/^[\d\/]+\s+.*?:\s*/, ''))
+    .map(l => l.replace(/^(\d{4}[/-]\d{1,2}[/-]\d{1,2}|\d{1,2}\/\d{1,2}\/\d{2,4})\s+.*?:\s*/, ''))
     .join('\n');
 }
 
@@ -176,8 +178,8 @@ startBtn.addEventListener('click', async () => {
 
     updateProgress(20, 'Parsing clinical log messages...');
 
-    // 支援您截圖中的手機版 WhatsApp 格式 (例如: 26/10/16 中午12:37 - 名字:)
-    const msgPattern = /(\d{1,2}\/\d{1,2}\/\d{2,4}\s+[^\-]+?:\s*)/g;
+    // 【雙重相容萬用正則】同時支援電腦版 (YYYY/MM/DD) 與手機版 (YY/MM/DD 或 DD/MM/YY) 匯出格式
+    const msgPattern = /((?:\d{4}[/-]\d{1,2}[/-]\d{1,2}|\d{1,2}\/\d{1,2}\/\d{2,4})\s+[^\-]+?:\s*)/g;
     const parts = chatTxtContent.split(msgPattern);
     const pigRecords = [];
     let currentPig = null;
@@ -207,9 +209,9 @@ startBtn.addEventListener('click', async () => {
       if (newEar && isCase) {
         if (currentPig) pigRecords.push(currentPig);
 
-        const hm = header.match(/(\d{1,2}\/\d{1,2}\/\d{2,4})/);
-        const hDate = hm ? hm[1] : '26/10/16';
-        const dm = cleanBody.match(/(?:death|died)?\s*[:：]?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{2,4})/i);
+        const hm = header.match(/(\d{4}[/-]\d{1,2}[/-]\d{1,2}|\d{1,2}\/\d{1,2}\/\d{2,4})/);
+        const hDate = hm ? hm[1] : '2026/01/01';
+        const dm = cleanBody.match(/(?:death|died)?\s*[:：]?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4}|\d{4}[/-]\d{1,2}[/-]\d{1,2}|\d{1,2}\/\d{1,2}\/\d{2,4})/i);
         const rawD = dm ? dm[1] : hDate;
         const norm = normalizeDate(rawD, hDate);
 
