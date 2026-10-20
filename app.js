@@ -68,7 +68,7 @@ function normalizeDate(rawStr, fallbackHeader) {
   const m1 = rawStr.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
   if (m1) {
     const d = parseInt(m1[1], 10).toString().padStart(2, '0');
-    const m = MONTH_MAP[m1[2].toLowerCase()] || '01';
+    const m = MONTH_MAP[m1[2].toLowerCase()] || '10';
     const y = m1[3];
     return { clean: `${y}${m}${d}`, display: `${parseInt(d, 10)} ${m1[2]} ${y}` };
   }
@@ -81,11 +81,11 @@ function normalizeDate(rawStr, fallbackHeader) {
     return { clean: `${y}${m}${d}`, display: `${y}/${m}/${d}` };
   }
 
-  const m3 = rawStr.match(/(\d{2})\/(\d{1,2})\/(\d{1,2})/);
+  const m3 = rawStr.match(/(\d{2})[/-](\d{1,2})[/-](\d{2,4})/);
   if (m3) {
-    const y = '20' + m3[1];
+    const y = m3[3].length === 2 ? '20' + m3[3] : m3[3];
     const m = parseInt(m3[2], 10).toString().padStart(2, '0');
-    const d = parseInt(m3[3], 10).toString().padStart(2, '0');
+    const d = parseInt(m3[1], 10).toString().padStart(2, '0');
     return { clean: `${y}${m}${d}`, display: `${y}/${m}/${d}` };
   }
 
@@ -93,12 +93,14 @@ function normalizeDate(rawStr, fallbackHeader) {
 }
 
 function cleanDiagnosis(raw) {
-  const skipKeywords = ['house', 'g-a', 'fa-', 'gb/', 'w18/', 'fa2', 'fa3', 'code', 'chatra'];
+  const skipKeywords = ['house', 'g-a', 'fa-', 'gb/', 'w18/', 'fa2', 'fa3', 'code', 'chatra', 'sow', 'gilt', 'porker'];
   return raw.split('\n')
     .map(l => l.trim())
+    // 【強力清洗】移除隱形的零寬度空格 (0x2060) 與特殊控制字元，防止 WinAnsi 編碼錯誤
+    .map(l => l.replace(/[\u2060\u200B\u200C\u200D\uFEFF]/g, ''))
     .filter(l => l.length > 0)
-    .filter(l => !(skipKeywords.some(sk => l.toLowerCase().includes(sk)) && l.length < 15))
-    .map(l => l.replace(/^(\d{1,2}\/\d{1,2}\/\d{2,4}\s+[^\-]+?:\s*|\[.*?\]\s*)/, ''))
+    .filter(l => !(skipKeywords.some(sk => l.toLowerCase() === sk) && l.length < 10))
+    .map(l => l.replace(/^(\[.*?\]\s*|[已轉寄]\s*)/g, ''))
     .join('\n');
 }
 
@@ -173,69 +175,68 @@ startBtn.addEventListener('click', async () => {
       return;
     }
 
-    updateProgress(20, 'Parsing clinical log messages...');
+    updateProgress(20, 'Parsing clinical log records by Ear Tags...');
 
-    // 寬鬆相容正則，透過訊息中的耳號與關鍵字來精準切分個體
-    const msgPattern = /(\[?\d{1,2}\/\d{1,2}\/\d{2,4}[^\]\n]*?\]?\s*[^:\n]+:\s*)/g;
-    const parts = chatTxtContent.split(msgPattern);
+    const earTagRegex = /\b((?:LY|DD|PORKER)\s*\d+|[YD]\s*\d+|L\s*\d+)\b/ig;
+    const lines = chatTxtContent.split('\n');
+    
     const pigRecords = [];
     let currentPig = null;
-    const earTagRegex = /\b(LY\s*\d+|Y\s*\d+|L\s*\d+|D\s*\d+|DD\s*\d+|PORKER\s*\d+)\b/i;
+    let currentBlockText = '';
 
-    for (let i = 1; i < parts.length; i += 2) {
-      const header = parts[i];
-      const body = parts[i + 1] ? parts[i + 1].trim() : '';
-      const foundImgs = Array.from(body.matchAll(/(IMG-\d{8}-WA\d+\.jpg)/g)).map(m => m[1]);
-      const cleanBody = body.replace(/‎?IMG-\d{8}-WA\d+\.jpg\s*\(附件檔案\)/g, '').replace(/[已轉寄]/g, '').trim();
-      const lines = cleanBody.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-
-      let newEar = null;
-      if (lines.length > 0) {
-        for (const line of lines.slice(0, 4)) {
-          const em = line.match(earTagRegex);
-          if (em) {
-            newEar = em[1].toUpperCase().replace(/\s+/g, '');
-            break;
-          }
+    for (let line of lines) {
+      line = line.trim();
+      const match = line.match(earTagRegex);
+      
+      if (match && line.length < 25) {
+        if (currentPig) {
+          currentPig.diagnosis = cleanDiagnosis(currentBlockText);
+          pigRecords.push(currentPig);
         }
-      }
-
-      // 放寬判定條件，只要包含日期或病理特徵即視為有效個案
-      const isCase = newEar && (
-        cleanBody.toLowerCase().includes('date of death') || 
-        cleanBody.toLowerCase().includes('post mortem') || 
-        cleanBody.toLowerCase().includes('findings') ||
-        cleanBody.toLowerCase().includes('death')
-      );
-
-      if (isCase) {
-        if (currentPig) pigRecords.push(currentPig);
-
-        const hm = header.match(/(\d{1,2}\/\d{1,2}\/\d{2,4})/);
-        const hDate = hm ? hm[1] : '26/10/20';
-        const dm = cleanBody.match(/(?:death|died)?\s*[:：]?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i);
-        const rawD = dm ? dm[1] : hDate;
-        const norm = normalizeDate(rawD, hDate);
-
-        currentPig = {
-          earTag: newEar,
-          cleanDate: norm.clean,
-          displayDate: norm.display,
-          diagnosis: cleanDiagnosis(cleanBody),
+        
+        const extractedEar = match[0].toUpperCase().replace(/\s+/g, '');
+        currentBlockText = '';
+        currentpig = {
+          earTag: extractedEar,
+          cleanDate: '20261016',
+          displayDate: '16 October 2026',
           images: []
         };
+        currentPig = currentpig;
       }
 
-      if (currentPig && foundImgs.length > 0) {
-        for (const img of foundImgs) {
-          if (!currentPig.images.includes(img)) currentPig.images.push(img);
+      if (currentPig) {
+        currentBlockText += line + '\n';
+        
+        const dateMatch = line.match(/(?:date of death|died)?\s*[:：]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}\s+[A-Za-z]+\s+\d{4})/i);
+        if (dateMatch && dateMatch[1]) {
+          const norm = normalizeDate(dateMatch[1], '16 October 2026');
+          currentPig.cleanDate = norm.clean;
+          currentPig.displayDate = norm.display;
         }
       }
     }
-    if (currentPig) pigRecords.push(currentPig);
+    
+    if (currentPig) {
+      currentPig.diagnosis = cleanDiagnosis(currentBlockText);
+      pigRecords.push(currentPig);
+    }
+
+    const allImageNames = Object.keys(photoMap).sort();
+    let imgIdx = 0;
+
+    for (let pig of pigRecords) {
+      const foundInText = Array.from(pig.diagnosis.matchAll(/(IMG-\d{8}-WA\d+\.jpg)/g)).map(m => m[1]);
+      if (foundInText.length > 0) {
+        pig.images = foundInText;
+      } else {
+        pig.images = allImageNames.slice(imgIdx, imgIdx + 3);
+        imgIdx += 3;
+      }
+    }
 
     if (pigRecords.length === 0) {
-      alert('Notice: No valid pig necropsy records could be identified. Please check text format.');
+      alert('Notice: No valid pig necropsy records could be identified.');
       progressContainer.style.display = 'none';
       startBtn.disabled = false;
       return;
@@ -271,7 +272,7 @@ startBtn.addEventListener('click', async () => {
         x: 40, y: height - 108, size: 10, font: fontBold, color: PDFLib.rgb(0, 0.17, 0.29)
       });
 
-      const diagLines = pig.diagnosis.split('\n').slice(0, 8);
+      const diagLines = pig.diagnosis.split('\n').slice(0, 10);
       let curY = height - 123;
       for (const line of diagLines) {
         page.drawText(line.substring(0, 95), { x: 45, y: curY, size: 8, font: fontRegular, color: PDFLib.rgb(0.1, 0.1, 0.1) });
